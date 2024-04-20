@@ -1,22 +1,18 @@
-# WM8960 Audio HAT
+# Weird Audio HAT
 
-The drivers of [WM8960 Audio HAT] for Raspberry Pi.
+The drivers of [Weird Audio HAT] for Raspberry Pi.
 
-http://www.waveshare.net/shop/WM8960-Audio-HAT.htm
-
-http://www.waveshare.com/wm8960-audio-hat.htm
+https://weirdelectronica.tech/
 
 ### Install wm8960-soundcard
 Get the wm8960 soundcard source code. and install all linux kernel drivers
 
 ```bash
-git clone https://github.com/waveshare/WM8960-Audio-HAT
-cd WM8960-Audio-HAT
+git clone https://github.com/loopea-lab/weird-audio-hat-driver
+cd weird-audio-hat-driver
 sudo ./install.sh 
 sudo reboot
 ```
-
-While the upstream wm8960 codec is not currently supported by current Pi kernel builds, upstream wm8960 has some bugs, we had fixed it. we must it build manually.
 
 Check that the sound card name matches the source code wm8960-soundcard.
 
@@ -69,7 +65,7 @@ aplay -D hw:1,0 test.wav
 If you want to upgrade the driver , you need uninstall the driver first.
 
 ```bash
-pi@raspberrypi:~/WM8960-Audio-HAT $ sudo ./uninstall.sh 
+pi@raspberrypi:~/weird-audio-hat-driver $ sudo ./uninstall.sh 
 ...
 
 ------------------------------------------------------

@@ -451,11 +451,11 @@ static const struct snd_soc_dapm_route audio_paths[] = {
 { "Right ADC", NULL, "Right Input Mixer" },
 
 //{ "Left Out Mixer", "LINLINE Switch", "LINLINE" },
-{ "Left Out Mixer", "Monitor Switch", "Left MIC Differential" },
+{ "Left Out Mixer", "Monitor Switch", "Left Input Mixer" },
 { "Left Out Mixer", "DAC Playback Switch", "Left DAC" },
 
 //{ "Right Out Mixer", "RINLINE Switch", "RINLINE" },
-{ "Right Out Mixer", "Monitor Switch", "Right MIC Differential" },
+{ "Right Out Mixer", "Monitor Switch", "Right Input Mixer" },
 { "Right Out Mixer", "DAC Playback Switch", "Right DAC" },
 
 { "LOUT1 PGA", NULL, "Left Out Mixer" },

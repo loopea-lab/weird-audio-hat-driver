@@ -18,7 +18,7 @@ ver="1.0"
 # the sources during kernel updates
 marker="0.0.0"
 
-#apt update
+apt update
 apt-get -y install raspberrypi-kernel-headers raspberrypi-kernel 
 apt-get -y install  dkms git i2c-tools libasound2-plugins build-essential
 
@@ -26,6 +26,9 @@ apt-get -y install  dkms git i2c-tools libasound2-plugins build-essential
 # it's just been updated)
 kernels=$(ls /lib/modules | sed "s/^/-k /")
 uname_r=$(uname -r)
+
+echo "Compile and install wm8960-soundcard"
+make
 
 function install_module {
   src=$1
