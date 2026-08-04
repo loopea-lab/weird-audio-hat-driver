@@ -1,77 +1,65 @@
-# Weird Audio HAT
+# Weird Audio HAT — driver
 
-The drivers of [Weird Audio HAT] for Raspberry Pi.
+Linux driver for the [Weird Audio HAT](https://github.com/loopea-lab/weird): a WM8960 sound card for the Raspberry Pi.
 
 https://weirdelectronica.tech/
 
-### Install wm8960-soundcard
-Get the wm8960 soundcard source code. and install all linux kernel drivers
+## Install
 
 ```bash
 git clone https://github.com/loopea-lab/weird-audio-hat-driver
 cd weird-audio-hat-driver
-sudo ./install.sh 
+sudo ./install.sh
 sudo reboot
 ```
 
-Check that the sound card name matches the source code wm8960-soundcard.
+After the reboot the card should appear:
 
 ```bash
-pi@raspberrypi:~ $ aplay -l
-**** List of PLAYBACK Hardware Devices ****
-card 0: ALSA [bcm2835 ALSA], device 0: bcm2835 ALSA [bcm2835 ALSA]
-  Subdevices: 7/7
-  Subdevice #0: subdevice #0
-  Subdevice #1: subdevice #1
-  Subdevice #2: subdevice #2
-  Subdevice #3: subdevice #3
-  Subdevice #4: subdevice #4
-  Subdevice #5: subdevice #5
-  Subdevice #6: subdevice #6
-card 0: ALSA [bcm2835 ALSA], device 1: bcm2835 ALSA [bcm2835 IEC958/HDMI]
-  Subdevices: 1/1
-  Subdevice #0: subdevice #0
-card 1: wm8960soundcard [wm8960-soundcard], device 0: bcm2835-i2s-wm8960-hifi wm8960-hifi-0 []
-  Subdevices: 1/1
-  Subdevice #0: subdevice #0
-pi@raspberrypi:~ $ arecord -l
-**** List of CAPTURE Hardware Devices ****
-card 1: wm8960soundcard [wm8960-soundcard], device 0: bcm2835-i2s-wm8960-hifi wm8960-hifi-0 []
-  Subdevices: 1/1
-  Subdevice #0: subdevice #0
-
+aplay -l      # → card N: wm8960soundcard [wm8960-soundcard]
+arecord -l    # same for capture
 ```
-If you want to change the alsa settings, You can use `sudo alsactl --file=/etc/wm8960-soundcard/wm8960_asound.state  store` to save it.
 
+> **Do not add `dtoverlay=wm8960-soundcard` to `/boot/config.txt`.** A systemd service
+> loads the overlay at runtime; adding it by hand breaks enumeration.
 
-### Usage:
-```bash
-#It will capture sound an playback on hw:1
-arecord -f cd -Dhw:1 | aplay -Dhw:1
-```
+## Requirements
+
+**Raspberry Pi 1–4 or Zero 2W — not a Pi 5.** The codec has no oscillator of its own and
+takes its master clock from the Pi's GPCLK0, which the Pi 5 does not expose.
+
+## Usage
+
+**Capture must use `S32_LE`.** The card accepts `S16_LE`, `S24_LE` and `S32_LE`, but *not*
+`S24_3LE` — with that format `arecord` fails, the stream never starts, and it looks like
+the input is dead.
 
 ```bash
-#capture sound 
-#arecord -d 10 -r 16000 -c 1 -t wav -f S16_LE test.wav
-arecord -D hw:1,0 -f S32_LE -r 16000 -c 2 test.wav
+# record
+arecord -D hw:1,0 -f S32_LE -r 44100 -c 2 take.wav
+
+# play back
+aplay -D hw:1,0 take.wav
+
+# levels
+alsamixer
 ```
+
+Input routing, gain and the full recipe: **[Audio from code](https://github.com/loopea-lab/weird/blob/main/software/audio.md)**.
+
+To save mixer settings:
 
 ```bash
-#play sound file test.wav
-aplay -D hw:1,0 test.wav
+sudo alsactl --file=/etc/wm8960-soundcard/wm8960_asound.state store
 ```
 
-### uninstall wm8960-soundcard
-If you want to upgrade the driver , you need uninstall the driver first.
+## Uninstall
 
 ```bash
-pi@raspberrypi:~/weird-audio-hat-driver $ sudo ./uninstall.sh 
-...
-
-------------------------------------------------------
-Please reboot your raspberry pi to apply all settings
-Thank you!
-------------------------------------------------------
+sudo ./uninstall.sh
+sudo reboot
 ```
 
-Enjoy !
+## Documentation
+
+Full manual for the Weird system: **https://github.com/loopea-lab/weird**
