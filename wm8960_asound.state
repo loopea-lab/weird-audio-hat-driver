@@ -202,6 +202,16 @@ state.wm8960soundcard {
 	}
 	control.12 {
 		iface MIXER
+		name 'DAC L/R Swap'
+		value true
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.13 {
+		iface MIXER
 		name 'MIC Bias'
 		value false
 		comment {
@@ -210,7 +220,7 @@ state.wm8960soundcard {
 			count 1
 		}
 	}
-	control.13 {
+	control.14 {
 		iface MIXER
 		name '_DAC Polarity'
 		value 'No Inversion'
@@ -224,7 +234,7 @@ state.wm8960soundcard {
 			item.3 'Stereo Inversion'
 		}
 	}
-	control.14 {
+	control.15 {
 		iface MIXER
 		name '_DAC Deemphasis Switch'
 		value false
@@ -234,7 +244,7 @@ state.wm8960soundcard {
 			count 1
 		}
 	}
-	control.15 {
+	control.16 {
 		iface MIXER
 		name '_ALC Function'
 		value Off
@@ -248,7 +258,7 @@ state.wm8960soundcard {
 			item.3 Stereo
 		}
 	}
-	control.16 {
+	control.17 {
 		iface MIXER
 		name '_ALC Max Gain'
 		value 7
@@ -259,7 +269,7 @@ state.wm8960soundcard {
 			range '0 - 7'
 		}
 	}
-	control.17 {
+	control.18 {
 		iface MIXER
 		name '_ALC Target'
 		value 4
@@ -270,7 +280,7 @@ state.wm8960soundcard {
 			range '0 - 15'
 		}
 	}
-	control.18 {
+	control.19 {
 		iface MIXER
 		name '_ALC Min Gain'
 		value 0
@@ -281,7 +291,7 @@ state.wm8960soundcard {
 			range '0 - 7'
 		}
 	}
-	control.19 {
+	control.20 {
 		iface MIXER
 		name '_ALC Hold Time'
 		value 0
@@ -292,7 +302,7 @@ state.wm8960soundcard {
 			range '0 - 15'
 		}
 	}
-	control.20 {
+	control.21 {
 		iface MIXER
 		name '_ALC Mode'
 		value ALC
@@ -304,7 +314,7 @@ state.wm8960soundcard {
 			item.1 Limiter
 		}
 	}
-	control.21 {
+	control.22 {
 		iface MIXER
 		name '_ALC Decay'
 		value 3
@@ -315,7 +325,7 @@ state.wm8960soundcard {
 			range '0 - 15'
 		}
 	}
-	control.22 {
+	control.23 {
 		iface MIXER
 		name '_ALC Attack'
 		value 2
@@ -326,7 +336,7 @@ state.wm8960soundcard {
 			range '0 - 15'
 		}
 	}
-	control.23 {
+	control.24 {
 		iface MIXER
 		name '_Noise Gate Threshold'
 		value 0
@@ -337,7 +347,7 @@ state.wm8960soundcard {
 			range '0 - 31'
 		}
 	}
-	control.24 {
+	control.25 {
 		iface MIXER
 		name '_Noise Gate Switch'
 		value false
@@ -347,7 +357,7 @@ state.wm8960soundcard {
 			count 1
 		}
 	}
-	control.25 {
+	control.26 {
 		iface MIXER
 		name 'ADC PCM Capture Volume'
 		value.0 195
@@ -363,7 +373,7 @@ state.wm8960soundcard {
 			dbvalue.1 0
 		}
 	}
-	control.26 {
+	control.27 {
 		iface MIXER
 		name 'Left Out _Bypass Monitor Input Volume'
 		value 2
@@ -377,7 +387,7 @@ state.wm8960soundcard {
 			dbvalue.0 -1500
 		}
 	}
-	control.27 {
+	control.28 {
 		iface MIXER
 		name 'Right Out _Bypass Monitor Input Volume'
 		value 2
@@ -391,7 +401,7 @@ state.wm8960soundcard {
 			dbvalue.0 -1500
 		}
 	}
-	control.28 {
+	control.29 {
 		iface MIXER
 		name '_ADC Data Output Select'
 		value 'Left Data = Left ADC;  Right Data = Right ADC'
@@ -405,7 +415,7 @@ state.wm8960soundcard {
 			item.3 'Left Data = Right ADC; Right Data = Left ADC'
 		}
 	}
-	control.29 {
+	control.30 {
 		iface MIXER
 		name 'Left MIC Differential LINLINE Switch'
 		value 0
@@ -416,7 +426,7 @@ state.wm8960soundcard {
 			range '0 - 0'
 		}
 	}
-	control.30 {
+	control.31 {
 		iface MIXER
 		name 'Left MIC Differential LINMIC Switch'
 		value 0
@@ -427,7 +437,7 @@ state.wm8960soundcard {
 			range '0 - 0'
 		}
 	}
-	control.31 {
+	control.32 {
 		iface MIXER
 		name 'Right MIC Differential RINLINE Switch'
 		value 0
@@ -438,7 +448,7 @@ state.wm8960soundcard {
 			range '0 - 0'
 		}
 	}
-	control.32 {
+	control.33 {
 		iface MIXER
 		name 'Right MIC Differential RINMIC Switch'
 		value 0
@@ -449,7 +459,7 @@ state.wm8960soundcard {
 			range '0 - 0'
 		}
 	}
-	control.33 {
+	control.34 {
 		iface MIXER
 		name 'Left Input Mixer MIC Switch'
 		value false
@@ -459,7 +469,7 @@ state.wm8960soundcard {
 			count 1
 		}
 	}
-	control.34 {
+	control.35 {
 		iface MIXER
 		name 'Right Input Mixer MIC Switch'
 		value false
@@ -469,7 +479,7 @@ state.wm8960soundcard {
 			count 1
 		}
 	}
-	control.35 {
+	control.36 {
 		iface MIXER
 		name 'Left Out Mixer DAC Playback Switch'
 		value true
@@ -479,7 +489,7 @@ state.wm8960soundcard {
 			count 1
 		}
 	}
-	control.36 {
+	control.37 {
 		iface MIXER
 		name 'Left Out Mixer Monitor Switch'
 		value false
@@ -489,7 +499,7 @@ state.wm8960soundcard {
 			count 1
 		}
 	}
-	control.37 {
+	control.38 {
 		iface MIXER
 		name 'Right Out Mixer DAC Playback Switch'
 		value true
@@ -499,7 +509,7 @@ state.wm8960soundcard {
 			count 1
 		}
 	}
-	control.38 {
+	control.39 {
 		iface MIXER
 		name 'Right Out Mixer Monitor Switch'
 		value false

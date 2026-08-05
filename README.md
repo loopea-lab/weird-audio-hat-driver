@@ -60,6 +60,33 @@ sudo ./uninstall.sh
 sudo reboot
 ```
 
+## Changing the driver's controls
+
+`wm8960_asound.state` is a snapshot of **every** mixer control. `alsactl restore` fails on
+any control the running driver does not expose, exits non-zero, and the service is marked
+`failed` — so **nothing** gets restored and the codec comes up unrouted and muted.
+
+That means: **if you add or remove a control, regenerate the state file.**
+
+```bash
+# on the board, with the mixer configured the way it should come up
+sudo alsactl store -f wm8960_asound.state
+```
+
+This bit us twice. The state that shipped until 2026-08-05 came from a different build of
+the driver: 64 controls against the 42 this one has. And adding `DAC L/R Swap` broke it
+again the same afternoon, for the same reason.
+
+## `DAC L/R Swap`
+
+Sets the WM8960's playback channel swap (R7 bit 5, `DLRSWAP`). It exists because on the
+Audio HAT **R1.1** the two output net labels are swapped against the codec's own pins, so
+the jack silkscreened `LINE OUT L` carries the right channel. The swap undoes it inside
+the chip, which corrects every path — including software that opens `hw:` directly.
+
+It ships **off**. Turn it on for boards whose routing has the fault; on a revision with
+the routing corrected, leaving it on would swap the channels right back.
+
 ## Documentation
 
 Full manual for the Weird system: **https://github.com/loopea-lab/weird**
