@@ -560,7 +560,13 @@ static int wm8960_set_dai_fmt(struct snd_soc_dai *codec_dai,
 unsigned int fmt)
 {
 struct snd_soc_component *component = codec_dai->component;
-u16 iface = 0;
+/*
+ * Se conserva DLRSWAP (bit 5). Esta funcion arma el registro desde cero, asi que
+ * escribirlo tal cual borraria el swap de canales que el usuario dejo puesto — y los
+ * canales se cruzarian en silencio, sin que nada lo reporte. El resto de los bits de
+ * R7 si son de esta funcion.
+ */
+u16 iface = snd_soc_component_read(component, WM8960_IFACE1) & 0x0020;
 
 /* set master/slave audio interface */
 switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
