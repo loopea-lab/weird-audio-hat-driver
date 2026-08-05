@@ -271,6 +271,21 @@ SOC_DOUBLE_R_TLV("Headphone Playback Volume", WM8960_LOUT1, WM8960_ROUT1,
 SOC_ENUM("_ADC Polarity", wm8960_enum[0]),
 SOC_SINGLE("_ADC High Pass Filter Switch", WM8960_DACCTL1, 0, 1, 0),
 
+/*
+ * R7 bit 5 = DLRSWAP: intercambia los canales del DAC dentro de la interfaz de audio,
+ * sin tocar el ADC (datasheet Rev 4.1, p.52).
+ *
+ * En el Audio HAT las etiquetas /HP_L y /HP_R del esquematico estan puestas sobre el pin
+ * contrario del simbolo, asi que el jack serigrafiado LINE OUT L saca el canal derecho.
+ * Poner este control en 1 lo compensa dentro del codec, para TODOS los caminos --
+ * incluido lo que abre hw: directo.
+ *
+ * Va apagado por defecto a proposito: cuando salga una revision con el cobre corregido,
+ * dejarlo prendido volveria a cruzar los canales. Se prende por placa, y queda guardado
+ * en el estado de ALSA.
+ */
+SOC_SINGLE("DAC L/R Swap", WM8960_IFACE1, 5, 1, 0),
+
 SOC_SINGLE("MIC Bias", WM8960_POWER1, 1, 1, 0),
 
 SOC_ENUM("_DAC Polarity", wm8960_enum[1]),
