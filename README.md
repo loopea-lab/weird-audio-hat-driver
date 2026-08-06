@@ -73,9 +73,9 @@ That means: **if you add or remove a control, regenerate the state file.**
 sudo alsactl store -f wm8960_asound.state
 ```
 
-This bit us twice. The state that shipped until 2026-08-05 came from a different build of
-the driver: 64 controls against the 42 this one has. And adding `DAC L/R Swap` broke it
-again the same afternoon, for the same reason.
+The usual cause is a state file captured from a different build of the driver: it lists
+controls this one does not expose, so the restore aborts before it finishes. Regenerating
+on the board the driver will run on avoids it.
 
 ## `DAC L/R Swap`
 
