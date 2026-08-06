@@ -1,0 +1,20 @@
+# Salida de compilar el módulo de kernel. Se regenera con `make`; versionarla haría
+# creer que un .ko del repo sirve, y un .ko sólo sirve para el kernel contra el que se
+# compiló.
+*.o
+*.ko
+*.mod
+*.mod.c
+*.mod.o
+.*.cmd
+Module.symvers
+modules.order
+.tmp_versions/
+
+# El overlay compilado sale del .dts con `make`. El .dts sí se versiona.
+*.dtbo
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
