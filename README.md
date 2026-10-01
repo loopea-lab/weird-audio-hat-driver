@@ -90,3 +90,7 @@ the routing corrected, leaving it on would swap the channels right back.
 ## Documentation
 
 Full manual for the Weird system: **https://github.com/loopea-lab/weird**
+
+## License
+
+GPL-2.0 — see [`LICENSE`](LICENSE).
