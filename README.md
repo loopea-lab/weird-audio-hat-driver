@@ -94,3 +94,5 @@ Full manual for the Weird system: **https://github.com/loopea-lab/weird**
 ## License
 
 GPL-2.0 — see [`LICENSE`](LICENSE).
+
+Copyright © 2024–2026 Weird Electronics / Loopea Lab.
