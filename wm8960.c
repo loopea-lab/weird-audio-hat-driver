@@ -272,17 +272,8 @@ SOC_ENUM("_ADC Polarity", wm8960_enum[0]),
 SOC_SINGLE("_ADC High Pass Filter Switch", WM8960_DACCTL1, 0, 1, 0),
 
 /*
- * R7 bit 5 = DLRSWAP: intercambia los canales del DAC dentro de la interfaz de audio,
- * sin tocar el ADC (datasheet Rev 4.1, p.52).
- *
- * En el Audio HAT las etiquetas /HP_L y /HP_R del esquematico estan puestas sobre el pin
- * contrario del simbolo, asi que el jack serigrafiado LINE OUT L saca el canal derecho.
- * Poner este control en 1 lo compensa dentro del codec, para TODOS los caminos --
- * incluido lo que abre hw: directo.
- *
- * Va apagado por defecto a proposito: cuando salga una revision con el cobre corregido,
- * dejarlo prendido volveria a cruzar los canales. Se prende por placa, y queda guardado
- * en el estado de ALSA.
+ * R7 bit 5 = DLRSWAP, swaps the DAC channels only (datasheet Rev 4.1, p.52). Audio HAT R1.1
+ * outputs are labelled the wrong way round; enable per board, off by default for fixed revisions.
  */
 SOC_SINGLE("DAC L/R Swap", WM8960_IFACE1, 5, 1, 0),
 
@@ -560,12 +551,7 @@ static int wm8960_set_dai_fmt(struct snd_soc_dai *codec_dai,
 unsigned int fmt)
 {
 struct snd_soc_component *component = codec_dai->component;
-/*
- * Se conserva DLRSWAP (bit 5). Esta funcion arma el registro desde cero, asi que
- * escribirlo tal cual borraria el swap de canales que el usuario dejo puesto — y los
- * canales se cruzarian en silencio, sin que nada lo reporte. El resto de los bits de
- * R7 si son de esta funcion.
- */
+/* Preserve DLRSWAP (bit 5): this rebuilds R7 from scratch and would silently drop the swap. */
 u16 iface = snd_soc_component_read(component, WM8960_IFACE1) & 0x0020;
 
 /* set master/slave audio interface */
