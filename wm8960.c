@@ -355,11 +355,10 @@ SOC_DAPM_SINGLE("DAC Playback Switch", WM8960_ROUTMIX, 8, 1, 0),
 SOC_DAPM_SINGLE("Monitor Switch", WM8960_BYPASS2, 7, 1, 0),
 };
 
-/*
 static const struct snd_kcontrol_new wm8960_mono_out[] = {
 SOC_DAPM_SINGLE("Left Switch", WM8960_MONOMIX1, 7, 1, 0),
 SOC_DAPM_SINGLE("Right Switch", WM8960_MONOMIX2, 7, 1, 0),
-};*/
+};
 
 static const struct snd_soc_dapm_widget wm8960_dapm_widgets[] = {
 SND_SOC_DAPM_INPUT("LINLINE"),
@@ -420,12 +419,11 @@ SND_SOC_DAPM_OUTPUT("HP_R"),
 SND_SOC_DAPM_OUTPUT("OUT3"),
 };
 
-/*
 static const struct snd_soc_dapm_widget wm8960_dapm_widgets_out3[] = {
 SND_SOC_DAPM_MIXER("Mono Output Mixer", WM8960_POWER2, 1, 0,
 &wm8960_mono_out[0],
 ARRAY_SIZE(wm8960_mono_out)),
-};*/
+};
 
 /* Represent OUT3 as a PGA so that it gets turned on with LOUT1/ROUT1 */
 static const struct snd_soc_dapm_widget wm8960_dapm_widgets_capless[] = {
@@ -482,13 +480,12 @@ static const struct snd_soc_dapm_route audio_paths[] = {
 //{ "SPK_RP", NULL, "Right Speaker Output" },
 };
 
-/*
 static const struct snd_soc_dapm_route audio_paths_out3[] = {
 { "Mono Output Mixer", "Left Switch", "Left Out Mixer" },
 { "Mono Output Mixer", "Right Switch", "Right Out Mixer" },
 
 { "OUT3", NULL, "Mono Output Mixer", }
-};*/
+};
 
 static const struct snd_soc_dapm_route audio_paths_capless[] = {
 { "HP_L", NULL, "OUT3 VMID" },
@@ -513,7 +510,6 @@ snd_soc_dapm_add_routes(dapm, audio_paths, ARRAY_SIZE(audio_paths));
 /* In capless mode OUT3 is used to provide VMID for the
 * headphone outputs, otherwise it is used as a mono mixer.
 */
-/*
 if (pdata && pdata->capless) {
 snd_soc_dapm_new_controls(dapm, wm8960_dapm_widgets_capless,
 		ARRAY_SIZE(wm8960_dapm_widgets_capless));
@@ -526,7 +522,7 @@ snd_soc_dapm_new_controls(dapm, wm8960_dapm_widgets_out3,
 
 snd_soc_dapm_add_routes(dapm, audio_paths_out3,
 	ARRAY_SIZE(audio_paths_out3));
-}*/
+}
 
 /* We need to power up the headphone output stage out of
 * sequence for capless mode.  To save scanning the widget
