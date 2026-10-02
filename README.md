@@ -28,8 +28,10 @@ A `Driver 'asoc-simple-card' is already registered` warning in `dmesg` is harmle
 
 ## Requirements
 
-**Raspberry Pi 1–4 or Zero 2W — not a Pi 5.** The codec has no oscillator of its own and
-takes its master clock from the Pi's GPCLK0, which the Pi 5 does not expose.
+**Raspberry Pi Zero 2W on 32-bit Raspberry Pi OS** (tested). Pi 1, Zero, 2 and 3 on a 32-bit OS
+should work but are untested. **Not supported:** Pi 4, Pi 5, or any 64-bit OS — the codec has no
+oscillator, and the helper that clocks it from the Pi's GPCLK0 only knows the 32-bit register
+addresses of the older chips.
 
 The clock is 11.2896 MHz, the **44.1 kHz family**. 48 kHz needs a 12.288 MHz clock and a
 device-tree change.
