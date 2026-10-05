@@ -61,7 +61,21 @@ Two input paths:
 
 - **Line** (`Left/Right Input Line`) — a volume, 0–7, up to +6 dB. It ships at −∞ dB; it is
   not a switch, so `sset ... on` returns `Invalid command!`.
-- **PGA** (`Left/Right Input Mixer MIC` on, plus `Left/Right MIC` gain) — up to +30 dB.
+- **PGA** (`Left/Right Input Mixer MIC` on) — `Left/Right MIC` gain, then `MIC Extra Gain`
+  (+13 / +20 / +29 dB). On the Audio HAT R1.1 the `MIC` gain attenuates but adds at most
+  ~6 dB above 0 dB; the gain comes from `MIC Extra Gain`.
+
+For an electret on IN R, with the MIC-R BIAS switch on:
+
+```bash
+amixer -c wm8960soundcard cset name='Right Input Line Volume' 0
+amixer -c wm8960soundcard cset name='Right Input Mixer MIC Switch' on
+amixer -c wm8960soundcard cset name='Right MIC Volume' 23            # 0 dB
+amixer -c wm8960soundcard cset name='Right MIC Extra Gain Volume' 2  # +20 dB
+```
+
+That is about 7.5 dB more than the line path at its maximum. Turn it back off for line
+sources: they clip.
 
 To configure a card by hand:
 
@@ -86,8 +100,10 @@ sudo alsactl --file=/etc/wm8960-soundcard/wm8960_asound.state store
 
 Swaps the playback channels inside the codec (R7 bit 5, `DLRSWAP`), for every path including
 software that opens `hw:` directly. On the Audio HAT **R1.1** the output jacks are labelled
-the wrong way round; turn this on to correct it. It ships **off**: on a corrected revision it
-would swap the channels back.
+the wrong way round, so the mixer state this repo installs turns it **on**. The control itself
+defaults to off; on a corrected revision, turn it off and store the state, or it swaps the
+channels back. With it on, `Mono Output Mixer Left Switch` carries what software
+sends on the right channel, and vice versa.
 
 ## Checking a capture at register level
 
