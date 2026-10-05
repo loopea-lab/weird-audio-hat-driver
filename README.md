@@ -49,7 +49,10 @@ alsamixer -c wm8960soundcard
 ```
 
 A provisioned unit restores its mixer state at boot: inputs on the line path, DAC routed to
-the outputs, MIC bias off. If it comes up muted, reinstall the driver.
+the outputs, `MIC Bias` on. If it comes up muted, reinstall the driver.
+
+`MIC Bias` stays on because the Audio HAT's SW1 decides whether the bias reaches J1: with SW1
+off it goes nowhere, with SW1 on an electret mic works without touching the mixer.
 
 ## Input routing and gain
 
