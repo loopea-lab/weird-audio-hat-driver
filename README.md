@@ -48,47 +48,47 @@ aplay   -D hw:wm8960soundcard take.wav
 alsamixer -c wm8960soundcard
 ```
 
-A provisioned unit restores its mixer state at boot: inputs on the line path, DAC routed to
-the outputs, `MIC Bias` on. If it comes up muted, reinstall the driver.
+A provisioned unit restores its mixer state at boot: both inputs at −3 dB on the line path,
+`MIC Bias` on. The DAC is always routed to the outputs. If it comes up muted, reinstall the
+driver.
 
 `MIC Bias` stays on because the Audio HAT's MIC-R BIAS switch decides whether the bias reaches the
 IN R jack: with the switch off it goes nowhere, with it on an electret mic works without touching
 the mixer.
 
-## Input routing and gain
+## Mixer controls
 
-Two input paths:
+| Control | Values | What it does |
+|---|---|---|
+| `IN L Capture Volume`, `IN R Capture Volume` | 0 mute, 1–7 = −12…+6 dB, 8 = +13 dB, 9 = +22 dB | Gain of each input jack. Up to +6 dB the line path; 8 and 9 switch to the codec's PGA and boost, for an electret on IN R or a weak source |
+| `ADC Capture Volume` | −97…+30 dB | Digital level after the converter; a fine trim |
+| `PCM Playback Volume` | −127…0 dB | Digital level before the DAC |
+| `OUT L/R Playback Volume` | mute, −73…+6 dB | Level at the OUT L/R jack. OUT MONO does not follow it |
+| `Mono Output Mixer Left/Right Switch` | on / off | What reaches OUT MONO; both = the sum |
+| `Left/Right Out Mixer Monitor Switch`, `Left/Right Input Monitor Volume` | on / off, −21…0 dB | Analog input-to-output monitor, no latency. Unplug any output-to-input cable first |
+| `DAC L/R Swap` | on / off | See below |
+| `MIC Bias` | on / off | Keep on; the board switch decides |
+| `ADC High Pass Filter Switch` | on / off | On removes DC from the recording; keep on |
+| `_ADC Data Output Select` | 4 routings | e.g. IN R into both recorded channels |
 
-- **Line** (`Left/Right Input Line`) — a volume, 0–7, up to +6 dB. It ships at −∞ dB; it is
-  not a switch, so `sset ... on` returns `Invalid command!`.
-- **PGA** (`Left/Right Input Mixer MIC` on) — `Left/Right MIC` gain, then `MIC Extra Gain`
-  (+13 / +20 / +29 dB). On the Audio HAT R1.1 the `MIC` gain attenuates but adds at most
-  ~6 dB above 0 dB; the gain comes from `MIC Extra Gain`.
+The +13 and +22 dB steps are net gains measured on an R1.1 board; take them as approximate.
+Crossing between 7 and 8 while recording clicks: the codec changes path.
 
-For an electret on IN R, with the MIC-R BIAS switch on:
+For an electret on IN R, with the MIC-R BIAS switch on, start at 8:
 
 ```bash
-amixer -c wm8960soundcard cset name='Right Input Line Volume' 0
-amixer -c wm8960soundcard cset name='Right Input Mixer MIC Switch' on
-amixer -c wm8960soundcard cset name='Right MIC Volume' 23            # 0 dB
-amixer -c wm8960soundcard cset name='Right MIC Extra Gain Volume' 2  # +20 dB
+amixer -c wm8960soundcard cset name='IN R Capture Volume' 8
 ```
 
-That is about 7.5 dB more than the line path at its maximum. Turn it back off for line
-sources: they clip.
+Go back to 1–7 for line sources: at 8 and 9 they clip.
 
 To configure a card by hand:
 
 ```bash
 sudo /usr/bin/minimal_clk 11.2896M -m 1 -q          # master clock on GPCLK0
-amixer -c wm8960soundcard sset 'Capture' 100% cap
-amixer -c wm8960soundcard sset 'Left Input Line'  100%
-amixer -c wm8960soundcard sset 'Right Input Line' 100%
-amixer -c wm8960soundcard sset 'Left MIC' 100%
-amixer -c wm8960soundcard sset 'Right MIC' 100%
+amixer -c wm8960soundcard cset name='IN L Capture Volume' 4
+amixer -c wm8960soundcard cset name='IN R Capture Volume' 4
 ```
-
-For sound out, the `Headphone` and `Out Mixer DAC` paths must be on.
 
 To keep your settings across reboots:
 

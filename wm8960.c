@@ -133,6 +133,7 @@ struct wm8960_priv {
 	int freq_in;
 	bool is_stream_in_use[2];
 	struct wm8960_data pdata;
+	unsigned int in_gain[2];
 };
 
 #define wm8960_reset(c)	regmap_write(c, WM8960_RESET, 0)
@@ -192,165 +193,98 @@ static int wm8960_set_deemph(struct snd_soc_component *component)
 				   0x6, val);
 }
 
-static int wm8960_get_deemph(struct snd_kcontrol *kcontrol,
-			     struct snd_ctl_elem_value *ucontrol)
-{
-	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
-	struct wm8960_priv *wm8960 = snd_soc_component_get_drvdata(component);
-
-	ucontrol->value.integer.value[0] = wm8960->deemph;
-	return 0;
-}
-
-static int wm8960_put_deemph(struct snd_kcontrol *kcontrol,
-			     struct snd_ctl_elem_value *ucontrol)
-{
-	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
-	struct wm8960_priv *wm8960 = snd_soc_component_get_drvdata(component);
-	unsigned int deemph = ucontrol->value.integer.value[0];
-
-	if (deemph > 1)
-		return -EINVAL;
-
-	wm8960->deemph = deemph;
-
-	return wm8960_set_deemph(component);
-}
-
 static const DECLARE_TLV_DB_SCALE(adc_tlv, -9750, 50, 1);
-static const DECLARE_TLV_DB_SCALE(inpga_tlv, -1725, 75, 0);
 static const DECLARE_TLV_DB_SCALE(dac_tlv, -12750, 50, 1);
 static const DECLARE_TLV_DB_SCALE(bypass_tlv, -2100, 300, 0);
 static const DECLARE_TLV_DB_SCALE(out_tlv, -12100, 100, 1);
-static const DECLARE_TLV_DB_SCALE(lineinboost_tlv, -1500, 300, 1);
-static const SNDRV_CTL_TLVD_DECLARE_DB_RANGE(micboost_tlv,
-	0, 1, TLV_DB_SCALE_ITEM(0, 1300, 0),
-	2, 3, TLV_DB_SCALE_ITEM(2000, 900, 0),
+/* Net gain from the jack: 1-7 line path, 8-9 PGA (0 dB) + boost +20 / +29, measured on R1.1 */
+static const SNDRV_CTL_TLVD_DECLARE_DB_RANGE(in_tlv,
+	0, 7, TLV_DB_SCALE_ITEM(-1500, 300, 1),
+	8, 8, TLV_DB_SCALE_ITEM(1300, 0, 0),
+	9, 9, TLV_DB_SCALE_ITEM(2200, 0, 0),
 );
 
+#define WM8960_IN_LINE_MAX	7
+#define WM8960_IN_MAX		9
+#define WM8960_IN_DEFAULT	4
+#define WM8960_PGA_0DB		0x17
+#define WM8960_INBOOST_MASK	0x70	/* L/RIN3BOOST */
+#define WM8960_MICPATH_MASK	0x38	/* L/RMICBOOST + L/RMIC2B */
+static const unsigned int wm8960_in_micboost[] = { 2, 3 };
+
+static void wm8960_in_apply(struct regmap *map, int ch, unsigned int v)
+{
+	unsigned int boost = ch ? WM8960_INBMIX2 : WM8960_INBMIX1;
+	unsigned int path = ch ? WM8960_RINPATH : WM8960_LINPATH;
+
+	if (v <= WM8960_IN_LINE_MAX) {
+		regmap_update_bits(map, path, WM8960_MICPATH_MASK, 0);
+		regmap_update_bits(map, boost, WM8960_INBOOST_MASK, v << 4);
+	} else {
+		regmap_update_bits(map, path, WM8960_MICPATH_MASK,
+				   wm8960_in_micboost[v - WM8960_IN_LINE_MAX - 1] << 4 | 0x08);
+		regmap_update_bits(map, boost, WM8960_INBOOST_MASK, 0);
+	}
+}
+
+static int wm8960_in_get(struct snd_kcontrol *kcontrol,
+			 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
+	struct wm8960_priv *wm8960 = snd_soc_component_get_drvdata(component);
+	struct soc_mixer_control *mc = (struct soc_mixer_control *)kcontrol->private_value;
+
+	ucontrol->value.integer.value[0] = wm8960->in_gain[mc->shift];
+	return 0;
+}
+
+static int wm8960_in_put(struct snd_kcontrol *kcontrol,
+			 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
+	struct wm8960_priv *wm8960 = snd_soc_component_get_drvdata(component);
+	struct soc_mixer_control *mc = (struct soc_mixer_control *)kcontrol->private_value;
+	long v = ucontrol->value.integer.value[0];
+
+	if (v < 0 || v > WM8960_IN_MAX)
+		return -EINVAL;
+	if (v == wm8960->in_gain[mc->shift])
+		return 0;
+	wm8960_in_apply(wm8960->regmap, mc->shift, v);
+	wm8960->in_gain[mc->shift] = v;
+	return 1;
+}
+
 static const struct snd_kcontrol_new wm8960_snd_controls[] = {
-//SOC_DOUBLE_R_TLV("MIC Volume", WM8960_LINVOL, WM8960_RINVOL,
-//		 0, 63, 0, inpga_tlv),
-
-SOC_SINGLE_TLV("Left MIC Volume", WM8960_LINVOL,
-		 0, 63, 0, inpga_tlv),
-SOC_SINGLE_TLV("Right MIC Volume", WM8960_RINVOL,
-		 0, 63, 0, inpga_tlv),
-//SOC_DOUBLE_R("Capture Volume ZC Switch", WM8960_LINVOL, WM8960_RINVOL,
-//	6, 1, 0),
-SOC_DOUBLE_R("Capture Switch", WM8960_LINVOL, WM8960_RINVOL,
-	7, 1, 1),
-
-SOC_SINGLE_TLV("Left Input Line Volume",
-	       WM8960_INBMIX1, 4, 7, 0, lineinboost_tlv),
-//SOC_SINGLE_TLV("Left Input Boost Mixer LINPUT2 Volume",
-//	       WM8960_INBMIX1, 1, 7, 0, lineinboost_tlv),
-SOC_SINGLE_TLV("Right Input Line Volume",
-	       WM8960_INBMIX2, 4, 7, 0, lineinboost_tlv),
-//SOC_SINGLE_TLV("Right Input Boost Mixer RINPUT2 Volume",
-//	       WM8960_INBMIX2, 1, 7, 0, lineinboost_tlv),
-SOC_SINGLE_TLV("Right MIC Extra Gain Volume",
-		WM8960_RINPATH, 4, 3, 0, micboost_tlv),
-SOC_SINGLE_TLV("Left MIC Extra Gain Volume",
-		WM8960_LINPATH, 4, 3, 0, micboost_tlv),
-
-SOC_DOUBLE_R_TLV("Playback Volume", WM8960_LDAC, WM8960_RDAC,
+SOC_SINGLE_EXT_TLV("IN L Capture Volume", SND_SOC_NOPM, 0, WM8960_IN_MAX, 0,
+		   wm8960_in_get, wm8960_in_put, in_tlv),
+SOC_SINGLE_EXT_TLV("IN R Capture Volume", SND_SOC_NOPM, 1, WM8960_IN_MAX, 0,
+		   wm8960_in_get, wm8960_in_put, in_tlv),
+SOC_DOUBLE_R_TLV("ADC Capture Volume", WM8960_LADC, WM8960_RADC,
+		 0, 255, 0, adc_tlv),
+SOC_DOUBLE_R_TLV("PCM Playback Volume", WM8960_LDAC, WM8960_RDAC,
 		 0, 255, 0, dac_tlv),
-
-SOC_DOUBLE_R_TLV("Headphone Playback Volume", WM8960_LOUT1, WM8960_ROUT1,
+SOC_DOUBLE_R_TLV("OUT L/R Playback Volume", WM8960_LOUT1, WM8960_ROUT1,
 		 0, 127, 0, out_tlv),
-//SOC_DOUBLE_R("Headphone Playback ZC Switch", WM8960_LOUT1, WM8960_ROUT1,7, 1, 0),
-
-//SOC_DOUBLE_R_TLV("Speaker Playback Volume", WM8960_LOUT2, WM8960_ROUT2,
-//0, 127, 0, out_tlv),
-//SOC_DOUBLE_R("Speaker Playback ZC Switch", WM8960_LOUT2, WM8960_ROUT2,7, 1, 0),
-//SOC_SINGLE("Speaker DC Volume", WM8960_CLASSD3, 3, 5, 0),
-//SOC_SINGLE("Speaker AC Volume", WM8960_CLASSD3, 0, 5, 0),
-
-//SOC_SINGLE("PCM Playback -6dB Switch", WM8960_DACCTL1, 7, 1, 0),
-SOC_ENUM("_ADC Polarity", wm8960_enum[0]),
-SOC_SINGLE("_ADC High Pass Filter Switch", WM8960_DACCTL1, 0, 1, 0),
-
+SOC_SINGLE_TLV("Left Input Monitor Volume", WM8960_BYPASS1, 4, 7, 1, bypass_tlv),
+SOC_SINGLE_TLV("Right Input Monitor Volume", WM8960_BYPASS2, 4, 7, 1, bypass_tlv),
 /*
  * R7 bit 5 = DLRSWAP, swaps the DAC channels only (datasheet Rev 4.1, p.52). Audio HAT R1.1
  * outputs are labelled the wrong way round; enable per board, off by default for fixed revisions.
  */
 SOC_SINGLE("DAC L/R Swap", WM8960_IFACE1, 5, 1, 0),
-
 SOC_SINGLE("MIC Bias", WM8960_POWER1, 1, 1, 0),
-
-SOC_ENUM("_DAC Polarity", wm8960_enum[1]),
-SOC_SINGLE_BOOL_EXT("_DAC Deemphasis Switch", 0,
-wm8960_get_deemph, wm8960_put_deemph),
-
-//SOC_ENUM("3D Filter Upper Cut-Off", wm8960_enum[2]),
-//SOC_ENUM("3D Filter Lower Cut-Off", wm8960_enum[3]),
-//SOC_SINGLE("3D Volume", WM8960_3D, 1, 15, 0),
-//SOC_SINGLE("3D Switch", WM8960_3D, 0, 1, 0),
-
-SOC_ENUM("_ALC Function", wm8960_enum[4]),
-SOC_SINGLE("_ALC Max Gain", WM8960_ALC1, 4, 7, 0),
-SOC_SINGLE("_ALC Target", WM8960_ALC1, 0, 15, 1),
-SOC_SINGLE("_ALC Min Gain", WM8960_ALC2, 4, 7, 0),
-SOC_SINGLE("_ALC Hold Time", WM8960_ALC2, 0, 15, 0),
-SOC_ENUM("_ALC Mode", wm8960_enum[5]),
-SOC_SINGLE("_ALC Decay", WM8960_ALC3, 4, 15, 0),
-SOC_SINGLE("_ALC Attack", WM8960_ALC3, 0, 15, 0),
-
-SOC_SINGLE("_Noise Gate Threshold", WM8960_NOISEG, 3, 31, 0),
-SOC_SINGLE("_Noise Gate Switch", WM8960_NOISEG, 0, 1, 0),
-
-SOC_DOUBLE_R_TLV("ADC PCM Capture Volume", WM8960_LADC, WM8960_RADC,
-0, 255, 0, adc_tlv),
-
-SOC_SINGLE_TLV("Left Out _Bypass Monitor Input Volume",
-WM8960_BYPASS1, 4, 7, 1, bypass_tlv),
-//SOC_SINGLE_TLV("Left Out Mixer LINLINE Volume",
-//WM8960_LOUTMIX, 4, 7, 1, bypass_tlv),
-SOC_SINGLE_TLV("Right Out _Bypass Monitor Input Volume",
-WM8960_BYPASS2, 4, 7, 1, bypass_tlv),
-//SOC_SINGLE_TLV("Right Out Mixer RINLINE Volume",
-//WM8960_ROUTMIX, 4, 7, 1, bypass_tlv),
-
+/* R5 bit 0 is ADCHPD, a disable: inverted so that on = filter on */
+SOC_SINGLE("ADC High Pass Filter Switch", WM8960_DACCTL1, 0, 1, 1),
 SOC_ENUM("_ADC Data Output Select", wm8960_enum[6]),
-//SOC_ENUM("DAC Mono Mix", wm8960_enum[7]),
-};
-
-static const struct snd_kcontrol_new wm8960_lin_boost[] = {
-//SOC_DAPM_SINGLE("LINPUT2 Switch", WM8960_LINPATH, 6, 1, 0),
-
-//SOC_DAPM_SINGLE("LINLINE Switch", WM8960_LINPATH, 7, 1, 0),
-//SOC_DAPM_SINGLE("LINMIC Switch", WM8960_LINPATH, 8, 1, 0),
-
-SOC_DAPM_SINGLE("LINLINE Switch", SND_SOC_NOPM, 0, 0, 0),
-SOC_DAPM_SINGLE("LINMIC Switch", SND_SOC_NOPM, 0, 0, 0),
-};
-
-static const struct snd_kcontrol_new wm8960_lin[] = {
-SOC_DAPM_SINGLE("MIC Switch", WM8960_LINPATH, 3, 1, 0),
-};
-
-static const struct snd_kcontrol_new wm8960_rin_boost[] = {
-//SOC_DAPM_SINGLE("RINPUT2 Switch", WM8960_RINPATH, 6, 1, 0),
-//SOC_DAPM_SINGLE("RINLINE Switch", WM8960_RINPATH, 7, 1, 0),
-//SOC_DAPM_SINGLE("RINMIC Switch", WM8960_RINPATH, 8, 1, 0),
-
-SOC_DAPM_SINGLE("RINLINE Switch", SND_SOC_NOPM, 0, 0, 0),
-SOC_DAPM_SINGLE("RINMIC Switch", SND_SOC_NOPM, 0, 0, 0),
-};
-
-static const struct snd_kcontrol_new wm8960_rin[] = {
-SOC_DAPM_SINGLE("MIC Switch", WM8960_RINPATH, 3, 1, 0),
 };
 
 static const struct snd_kcontrol_new wm8960_loutput_mixer[] = {
-SOC_DAPM_SINGLE("DAC Playback Switch", WM8960_LOUTMIX, 8, 1, 0),
 //SOC_DAPM_SINGLE("LINLINE Switch", WM8960_LOUTMIX, 7, 1, 0),
 SOC_DAPM_SINGLE("Monitor Switch", WM8960_BYPASS1, 7, 1, 0),
 };
 
 static const struct snd_kcontrol_new wm8960_routput_mixer[] = {
-SOC_DAPM_SINGLE("DAC Playback Switch", WM8960_ROUTMIX, 8, 1, 0),
 //SOC_DAPM_SINGLE("RINLINE Switch", WM8960_ROUTMIX, 7, 1, 0),
 SOC_DAPM_SINGLE("Monitor Switch", WM8960_BYPASS2, 7, 1, 0),
 };
@@ -372,21 +306,8 @@ SND_SOC_DAPM_INPUT("RINMIC"),
 
 
 
-//SND_SOC_DAPM_MIXER("Left MIC Differential", WM8960_POWER1, 5, 0,
-//wm8960_lin_boost, ARRAY_SIZE(wm8960_lin_boost)),
-SND_SOC_DAPM_MIXER("Left MIC Differential", SND_SOC_NOPM, 0, 0,
-wm8960_lin_boost, ARRAY_SIZE(wm8960_lin_boost)),
-
-SND_SOC_DAPM_MIXER("Right MIC Differential", SND_SOC_NOPM, 0, 0,
-wm8960_rin_boost, ARRAY_SIZE(wm8960_rin_boost)),
-
-//SND_SOC_DAPM_MIXER("Right MIC Differential", WM8960_POWER1, 4, 0,
-//wm8960_rin_boost, ARRAY_SIZE(wm8960_rin_boost)),
-
-SND_SOC_DAPM_MIXER("Left Input Mixer", WM8960_POWER3, 5, 0,
-wm8960_lin, ARRAY_SIZE(wm8960_lin)),
-SND_SOC_DAPM_MIXER("Right Input Mixer", WM8960_POWER3, 4, 0,
-wm8960_rin, ARRAY_SIZE(wm8960_rin)),
+SND_SOC_DAPM_MIXER("Left Input Mixer", WM8960_POWER3, 5, 0, NULL, 0),
+SND_SOC_DAPM_MIXER("Right Input Mixer", WM8960_POWER3, 4, 0, NULL, 0),
 
 SND_SOC_DAPM_ADC("Left ADC", "Capture", WM8960_POWER1, 3, 0),
 SND_SOC_DAPM_ADC("Right ADC", "Capture", WM8960_POWER1, 2, 0),
@@ -431,24 +352,7 @@ SND_SOC_DAPM_PGA("OUT3 VMID", WM8960_POWER2, 1, 0, NULL, 0),
 };
 
 static const struct snd_soc_dapm_route audio_paths[] = {
-//{ "Left MIC Differential", NULL , "MICB"},
-{ "Left MIC Differential", "LINLINE Switch", "LINLINE" },
-{ "Left MIC Differential", "LINMIC Switch", "LINMIC" },
-//{ "Left MIC Differential", "LINPUT2 Switch", "LINPUT2" },
-
-{ "Left Input Mixer", "MIC Switch", "Left MIC Differential" },
-{ "Left Input Mixer", "MIC Switch", "LINMIC" },  /* Really MIC Switch */
-//{ "Left Input Mixer", NULL, "LINPUT2" },
 { "Left Input Mixer", NULL, "LINLINE" },
-
-//{ "Right MIC Differential", NULL , "MICB"},
-{ "Right MIC Differential", "RINLINE Switch", "RINLINE" },
-{ "Right MIC Differential", "RINMIC Switch", "RINMIC" },
-//{ "Right MIC Differential", "RINPUT2 Switch", "RINPUT2" },
-
-{ "Right Input Mixer", "MIC Switch", "Right MIC Differential" },
-{ "Right Input Mixer", "MIC Switch", "RINMIC" },  /* Really MIC Switch */
-//{ "Right Input Mixer", NULL, "RINPUT2" },
 { "Right Input Mixer", NULL, "RINLINE" },
 
 { "Left ADC", NULL, "Left Input Mixer" },
@@ -456,11 +360,11 @@ static const struct snd_soc_dapm_route audio_paths[] = {
 
 //{ "Left Out Mixer", "LINLINE Switch", "LINLINE" },
 { "Left Out Mixer", "Monitor Switch", "Left Input Mixer" },
-{ "Left Out Mixer", "DAC Playback Switch", "Left DAC" },
+{ "Left Out Mixer", NULL, "Left DAC" },
 
 //{ "Right Out Mixer", "RINLINE Switch", "RINLINE" },
 { "Right Out Mixer", "Monitor Switch", "Right Input Mixer" },
-{ "Right Out Mixer", "DAC Playback Switch", "Right DAC" },
+{ "Right Out Mixer", NULL, "Right DAC" },
 
 { "LOUT1 PGA", NULL, "Left Out Mixer" },
 { "ROUT1 PGA", NULL, "Right Out Mixer" },
@@ -1541,6 +1445,15 @@ static int wm8960_i2c_probe(struct i2c_client *i2c,
 	regmap_update_bits(wm8960->regmap, WM8960_RINPATH, 0x180, 0x180);
 
 	regmap_update_bits(wm8960->regmap, WM8960_POWER1, 0x30, 0x30);
+
+	/* Fixed: DAC into the output mixers, PGAs unmuted at 0 dB; IN L/R gain picks the path */
+	regmap_update_bits(wm8960->regmap, WM8960_LOUTMIX, 0x100, 0x100);
+	regmap_update_bits(wm8960->regmap, WM8960_ROUTMIX, 0x100, 0x100);
+	regmap_update_bits(wm8960->regmap, WM8960_LINVOL, 0x1ff, 0x100 | WM8960_PGA_0DB);
+	regmap_update_bits(wm8960->regmap, WM8960_RINVOL, 0x1ff, 0x100 | WM8960_PGA_0DB);
+	wm8960->in_gain[0] = wm8960->in_gain[1] = WM8960_IN_DEFAULT;
+	wm8960_in_apply(wm8960->regmap, 0, WM8960_IN_DEFAULT);
+	wm8960_in_apply(wm8960->regmap, 1, WM8960_IN_DEFAULT);
 
 
 	i2c_set_clientdata(i2c, wm8960);
